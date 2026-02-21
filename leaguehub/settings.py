@@ -31,11 +31,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'rest_framework',
-    'cors_headers',
+    'corsheaders',
 
     'accounts',
     'core',
-    'leagues'
+    'leagues',
 ]
 
 MIDDLEWARE = [

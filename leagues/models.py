@@ -16,9 +16,9 @@ class Season(models.Model):
   created_at = models.DateTimeField(auto_now_add=True)
 
   class Meta:
-    constraints = {
+    constraints = [
       models.UniqueConstraint(fields=["organization", "name"], name="uniq_season_org_name")
-    }
+    ]
 
   def __str__(self) -> str:
     return f"{self.organization.slug} - {self.name}"
@@ -32,9 +32,9 @@ class Division(models.Model):
   created_at = models.DateTimeField(auto_now_add=True)
 
   class Meta:
-    constraints = {
+    constraints = [
       models.UniqueConstraint(fields=["season", "name"], name="uniq_division_season_name")
-    }
+    ]
 
   def __str__(self) -> str:
     return f"{self.season.name} = {self.name}"
@@ -130,58 +130,58 @@ class Match(models.Model):
     return f"{self.home_team} vs {self.away_team} @ {self.starts_at}"
   
 class MatchResult(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    match = models.OneToOneField(Match, on_delete=models.CASCADE, related_name="result")
+  id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+  match = models.OneToOneField(Match, on_delete=models.CASCADE, related_name="result")
 
-    home_score = models.IntegerField()
-    away_score = models.IntegerField()
-    is_forfeit = models.BooleanField(default=False)
+  home_score = models.IntegerField()
+  away_score = models.IntegerField()
+  is_forfeit = models.BooleanField(default=False)
 
-    recorded_by = models.CharField(max_length=120, blank=True, default="")
-    recorded_at = models.DateTimeField(default=timezone.now)
-    updated_at = models.DateTimeField(auto_now=True)
+  recorded_by = models.CharField(max_length=120, blank=True, default="")
+  recorded_at = models.DateTimeField(default=timezone.now)
+  updated_at = models.DateTimeField(auto_now=True)
 
 
 # Attendance Lite (per team)
 class TeamInviteToken(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    team = models.OneToOneField(Team, on_delete=models.CASCADE, related_name="invite_token")
-    token = models.CharField(max_length=128, unique=True, db_index=True)
-    is_active = models.BooleanField(default=True)
+  id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+  team = models.OneToOneField(Team, on_delete=models.CASCADE, related_name="invite_token")
+  token = models.CharField(max_length=128, unique=True, db_index=True)
+  is_active = models.BooleanField(default=True)
 
-    created_at = models.DateTimeField(auto_now_add=True)
-    rotated_at = models.DateTimeField(null=True, blank=True)
+  created_at = models.DateTimeField(auto_now_add=True)
+  rotated_at = models.DateTimeField(null=True, blank=True)
 
-    @staticmethod
-    def generate_token() -> str:
-        return secrets.token_urlsafe(32)
+  @staticmethod
+  def generate_token() -> str:
+      return secrets.token_urlsafe(32)
 
-    def rotate(self) -> None:
-        self.token = self.generate_token()
-        self.is_active = True
-        self.rotated_at = timezone.now()
+  def rotate(self) -> None:
+      self.token = self.generate_token()
+      self.is_active = True
+      self.rotated_at = timezone.now()
 
 
 class MatchAttendance(models.Model):
-    class Status(models.TextChoices):
-        GOING = "GOING", "Going"
-        MAYBE = "MAYBE", "Maybe"
-        OUT = "OUT", "Out"
+  class Status(models.TextChoices):
+      GOING = "GOING", "Going"
+      MAYBE = "MAYBE", "Maybe"
+      OUT = "OUT", "Out"
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    match = models.ForeignKey(Match, on_delete=models.CASCADE, related_name="attendances")
-    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="attendances")
+  id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+  match = models.ForeignKey(Match, on_delete=models.CASCADE, related_name="attendances")
+  team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="attendances")
 
-    participant_name = models.CharField(max_length=80)
-    status = models.CharField(max_length=10, choices=Status.choices)
-    note = models.CharField(max_length=255, blank=True, default="")
-    device_key = models.CharField(max_length=64, blank=True, default="")
-    updated_at = models.DateTimeField(auto_now=True)
+  participant_name = models.CharField(max_length=80)
+  status = models.CharField(max_length=10, choices=Status.choices)
+  note = models.CharField(max_length=255, blank=True, default="")
+  device_key = models.CharField(max_length=64, blank=True, default="")
+  updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["match", "team", "participant_name"],
-                name="uniq_attendance_match_team_name",
-            )
-        ]
+  class Meta:
+      constraints = [
+          models.UniqueConstraint(
+              fields=["match", "team", "participant_name"],
+              name="uniq_attendance_match_team_name",
+          )
+      ]

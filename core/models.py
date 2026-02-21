@@ -29,9 +29,9 @@ class Membership(models.Model):
   created_at = models.DateTimeField(auto_now_add=True)
 
   class Meta:
-    constraints = {
-      models.UniqueConstraint(fields=["organization", "name"], name="uniq_membership_org_user")
-    }
+    constraints = [
+      models.UniqueConstraint(fields=["organization", "user"], name="uniq_membership_org_user")
+    ]
 
   def __str__(self) -> str:
     return f"{self.user_id} -> {self.organization.slug} ({self.role})"

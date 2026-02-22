@@ -3,6 +3,8 @@ import secrets
 from django.db import models
 from django.utils import timezone
 from core.models import Organization
+from django.db.models import Q, F
+from django.core.exceptions import ValidationError
 
 # Create your models here.
 
@@ -37,7 +39,7 @@ class Division(models.Model):
     ]
 
   def __str__(self) -> str:
-    return f"{self.season.name} = {self.name}"
+    return f"{self.season.name} - {self.name}"
   
 class Team(models.Model):
   id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -56,6 +58,10 @@ class Team(models.Model):
   class Meta:
     constraints = [
       models.UniqueConstraint(fields=["division", "name"], name="uniq_team_division_name")
+    ]
+    index = [
+      models.Index(fields=["division", "name"]),
+      models.Index(fields=["is_active"]),
     ]
 
   def __str__(self) -> str:
@@ -83,7 +89,7 @@ class TeamSeason(models.Model):
     ]
 
   def __str__(self) -> str:
-    return f"{self.name} @ {self.season.name}"
+    return f"{self.team.name} @ {self.season.name}"
   
 
 class Venue(models.Model):
@@ -126,8 +132,42 @@ class Match(models.Model):
 
   created_at = models.DateTimeField(auto_now_add=True)
 
+  class Meta:
+    indexes = [
+      models.Index(fields=["season", "starts_at"]),
+      models.Index(fields=["division", "starts_at"]),
+      models.Index(fields=["venue", "starts_at"]),
+      models.Index(fields=["home_team", "starts_at"]),
+      models.Index(fields=["away_team", "starts_at"]),
+    ]
+    constraints = [
+      models.CheckConstraint(
+        condition=~Q(home_team=F("away_team")),
+        name="chk_match_home_away_different"
+      )
+    ]
+
   def __str__(self) -> str:
     return f"{self.home_team} vs {self.away_team} @ {self.starts_at}"
+  
+  def clean(self):
+    errors = {}
+
+    # division must belong to season
+    if self.division_id and self.season_id:
+      if self.division.season_id != self.season_id:
+        errors["division"] = "Division must belong to the same season as the match"
+    
+
+    for field_name in ["home_team", "away_team"]:
+      team = getattr(self, field_name)
+
+      if team and self.division_id:
+        if team.division_id != self.division_id:
+          errors[field_name] = f"{field_name.replace('_', ' ').title()} must belong to the match division"
+
+    if errors:
+      raise ValidationError(errors)
   
 class MatchResult(models.Model):
   id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -156,10 +196,12 @@ class TeamInviteToken(models.Model):
   def generate_token() -> str:
       return secrets.token_urlsafe(32)
 
-  def rotate(self) -> None:
+  def rotate(self, *, save=True) -> None:
       self.token = self.generate_token()
       self.is_active = True
       self.rotated_at = timezone.now()
+      if save:
+        self.save(update_fields=["token", "is_active", "rotated_at"])
 
 
 class MatchAttendance(models.Model):

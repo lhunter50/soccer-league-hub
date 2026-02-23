@@ -6,7 +6,8 @@ from core.models import Organization
 from django.db.models import Q, F
 from django.core.exceptions import ValidationError
 
-# Create your models here.
+from django.conf import settings
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 class Season(models.Model):
   id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -59,7 +60,7 @@ class Team(models.Model):
     constraints = [
       models.UniqueConstraint(fields=["division", "name"], name="uniq_team_division_name")
     ]
-    index = [
+    indexes = [
       models.Index(fields=["division", "name"]),
       models.Index(fields=["is_active"]),
     ]
@@ -227,3 +228,162 @@ class MatchAttendance(models.Model):
               name="uniq_attendance_match_team_name",
           )
       ]
+
+class TeamMember(models.Model):
+  class Role(models.TextChoices):
+    CAPTAIN = "CAPTAIN", "Captain"
+    PLAYER = "PLAYER", "Player"
+
+  id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+  team_season = models.ForeignKey("TeamSeason", on_delete=models.CASCADE, related_name="members")
+  user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name="team_memberships", null=True, blank=True)
+
+  role = models.CharField(max_length=10, choices=Role.choices, default=Role.PLAYER)
+  jersey_number = models.PositiveSmallIntegerField(
+    null=True,
+    blank=True,
+    validators=[MinValueValidator(0), MaxValueValidator(99)]
+  )
+  full_name = models.CharField(max_length=120, null=True, blank=True)
+  email = models.EmailField(blank=True, default="")
+  phone = models.CharField(max_length=40, blank=True, default="")
+
+  is_active = models.BooleanField(default=True)
+  joined_at = models.DateTimeField(auto_now_add=True)
+
+  class Meta:
+    constraints = [
+      models.UniqueConstraint(fields=["team_season", "full_name"], name="uniq_teamseason_member_name")
+    ]
+    indexes = [
+      models.Index(fields=["team_season", "role"]),
+    ]
+
+  def __str__(self):
+    return f"{self.full_name} ({self.team_season_id})"
+  
+
+class GoalEvent(models.Model):
+  id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+  match = models.ForeignKey("Match", on_delete=models.CASCADE, related_name="goal_events")
+  team = models.ForeignKey("Team", on_delete=models.PROTECT, related_name="goal_events")
+  scorer = models.ForeignKey("TeamMember", on_delete=models.PROTECT, related_name="goals")
+
+  minute = models.PositiveSmallIntegerField(null=True, blank=True)
+
+  created_at = models.DateTimeField(auto_now_add=True)
+
+  class Meta:
+    indexes = [
+      models.Index(fields=["match"]),
+      models.Index(fields=["scorer"])
+    ]
+  def clean(self):
+    errors = {}
+
+    # If scorer picked, we can infer the team (nice UX)
+    if self.scorer_id and not self.team_id:
+        self.team_id = self.scorer.team_season.team_id
+
+    # Validate team belongs to match
+    if self.match_id and self.team_id:
+        if self.team_id not in (self.match.home_team_id, self.match.away_team_id):
+            errors["team"] = "Team must be either the match home team or away team."
+
+    # Validate scorer belongs to that team
+    if self.scorer_id and self.team_id:
+        if self.scorer.team_season.team_id != self.team_id:
+            errors["scorer"] = "Scorer must belong to the selected team."
+
+    # Validate scorer is part of one of the match teams
+    if self.match_id and self.scorer_id:
+        scorer_team_id = self.scorer.team_season.team_id
+        if scorer_team_id not in (self.match.home_team_id, self.match.away_team_id):
+            errors["scorer"] = "Scorer must belong to a team playing in this match."
+
+    if errors:
+        raise ValidationError(errors)
+
+class CardEvent(models.Model):
+  class Card(models.TextChoices):
+    YELLOW = "YELLOW", "Yellow"
+    RED = "RED", "Red"
+  
+  id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+  match = models.ForeignKey("Match", on_delete=models.CASCADE, related_name="card_events")
+  team = models.ForeignKey("Team", on_delete=models.PROTECT, related_name="card_events")
+  player = models.ForeignKey("TeamMember", on_delete=models.PROTECT, related_name="cards")
+
+  card = models.CharField(max_length=10, choices=Card.choices)
+  minute = models.PositiveSmallIntegerField(null=True, blank=True)
+  note = models.CharField(max_length=255, blank=True, default="")
+
+  created_at = models.DateTimeField(auto_now_add=True)
+
+  class Meta:
+    indexes = [
+      models.Index(fields=["match"]),
+      models.Index(fields=["player"]),
+      models.Index(fields=["card"]),
+    ]
+
+  def clean(self):
+    errors = {}
+
+    # Auto-infer team from player if not set
+    if self.player_id and not self.team_id:
+        self.team_id = self.player.team_season.team_id
+
+    if self.match_id and self.team_id:
+        if self.team_id not in (self.match.home_team_id, self.match.away_team_id):
+            errors["team"] = "Team must be either the match home team or away team."
+
+    if self.player_id and self.team_id:
+        if self.player.team_season.team_id != self.team_id:
+            errors["player"] = "Player must belong to the selected team."
+
+    if self.match_id and self.player_id:
+        player_team_id = self.player.team_season.team_id
+        if player_team_id not in (self.match.home_team_id, self.match.away_team_id):
+            errors["player"] = "Player must belong to a team playing in this match."
+
+    if errors:
+        raise ValidationError(errors)
+
+class Appearance(models.Model):
+  id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+  match = models.ForeignKey("Match", on_delete=models.CASCADE, related_name="appearances")
+  team = models.ForeignKey("Team", on_delete=models.PROTECT, related_name="appearances")
+  player = models.ForeignKey("TeamMember", on_delete=models.PROTECT, related_name="appearances_as_player")
+
+  class Meta:
+    constraints = [
+        models.UniqueConstraint(fields=["match", "player"], name="uniq_appearance_match_player"),
+    ]
+    indexes = [
+        models.Index(fields=["match", "team"]),
+        models.Index(fields=["player"]),
+    ]
+
+  def clean(self):
+    errors = {}
+
+    # Auto-infer team from player if not set
+    if self.player_id and not self.team_id:
+        self.team_id = self.player.team_season.team_id
+
+    if self.match_id and self.team_id:
+        if self.team_id not in (self.match.home_team_id, self.match.away_team_id):
+            errors["team"] = "Team must be either the match home team or away team."
+
+    if self.player_id and self.team_id:
+        if self.player.team_season.team_id != self.team_id:
+            errors["player"] = "Player must belong to the selected team."
+
+    if self.match_id and self.player_id:
+        player_team_id = self.player.team_season.team_id
+        if player_team_id not in (self.match.home_team_id, self.match.away_team_id):
+            errors["player"] = "Player must belong to a team playing in this match."
+
+    if errors:
+        raise ValidationError(errors)

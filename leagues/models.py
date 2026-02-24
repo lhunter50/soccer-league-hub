@@ -186,7 +186,8 @@ class MatchResult(models.Model):
 # Attendance Lite (per team)
 class TeamInviteToken(models.Model):
   id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-  team = models.OneToOneField(Team, on_delete=models.CASCADE, related_name="invite_token")
+  # team = models.OneToOneField(Team, on_delete=models.CASCADE, related_name="invite_token")
+  team_season = models.OneToOneField(TeamSeason, on_delete=models.CASCADE, related_name="invite_token")
   token = models.CharField(max_length=128, unique=True, db_index=True)
   is_active = models.BooleanField(default=True)
 

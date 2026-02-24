@@ -120,11 +120,11 @@ class MatchResultAdmin(admin.ModelAdmin):
     list_display = ("match", "home_score", "away_score", "is_forfeit", "recorded_at", "updated_at")
     list_filter = ("is_forfeit",)
 
-@admin.register(TeamInviteToken)
-class TeamInviteTokenAdmin(admin.ModelAdmin):
-    list_display = ("team", "is_active", "created_at", "rotated_at")
-    search_fields = ("team__name", "token")
-    list_filter = ("is_active",)
+# @admin.register(TeamInviteToken)
+# class TeamInviteTokenAdmin(admin.ModelAdmin):
+#     list_display = ("team", "is_active", "created_at", "rotated_at")
+#     search_fields = ("team__name", "token")
+#     list_filter = ("is_active",)
 
 @admin.register(MatchAttendance)
 class MatchAttendanceAdmin(admin.ModelAdmin):

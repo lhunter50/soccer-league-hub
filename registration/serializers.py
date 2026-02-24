@@ -7,7 +7,7 @@ from leagues.models import TeamInviteToken
 class TeamRegistrationSerializer(serializers.Serializer):
   class Meta:
     model = RegistrationRequest
-    fields = ["id", "season", "division", "team_name_text", "full_name", "email", "phone"]
+    fields = ["id", "season", "team_name_text", "team_level" "full_name", "email", "phone", "team_notes"]
 
   def validate_team_name_text(self, value: str) -> str:
     if not value or not value.strip():

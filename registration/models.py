@@ -31,7 +31,6 @@ class RegistrationRequest(models.Model):
 
   # Context
   season = models.ForeignKey(Season, on_delete=models.PROTECT, related_name="registration_requests")
-  division = models.ForeignKey(Division, on_delete=models.PROTECT, blank=True, null=True, related_name="registration_requests")
 
   #JOIN_TEAM requests link to an existing TeamSeason
   team_season = models.ForeignKey(

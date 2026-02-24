@@ -62,7 +62,7 @@ def approve_create_team_request(*, req: RegistrationRequest, approved_by=None) -
   return team_season
 
 @transaction.atomic
-def approved_join_team_request(*, req: RegistrationRequest, approved_by=None) -> TeamMember:
+def approve_join_team_request(*, req: RegistrationRequest, approved_by=None) -> TeamMember:
   if req.request_type != RegistrationRequest.RequestType.JOIN_TEAM:
     raise ValueError("Not a JOIN_TEAM request")
   if req.request_type != RegistrationRequest.Status.PENDING:

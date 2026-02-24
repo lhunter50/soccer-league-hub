@@ -44,7 +44,7 @@ class Division(models.Model):
   
 class Team(models.Model):
   id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-  division = models.ForeignKey(Division, on_delete=models.CASCADE, related_name="teams")
+  division = models.ForeignKey(Division, on_delete=models.CASCADE, related_name="teams", null=True, blank=True)
 
   name = models.CharField(max_length=120)
   short_name = models.CharField(max_length=40, blank=True, default="")

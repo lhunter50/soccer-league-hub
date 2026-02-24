@@ -30,7 +30,7 @@ def approve_create_team_request(*, req: RegistrationRequest, approved_by=None) -
     raise ValueError("Request is not PENDING.")
   
   team = Team.objects.create(name=req.team_name_text.strip())
-  team_season = TeamSeason.objects.create(team=team, season=req.season, division=req.division)
+  team_season = TeamSeason.objects.create(team=team, season=req.season,)
 
   #Captain record
   TeamMember.objects.create(
@@ -46,7 +46,7 @@ def approve_create_team_request(*, req: RegistrationRequest, approved_by=None) -
     invite.rotate(save=True)
 
   req.team_season = team_season
-  req.status = RegistrationRequest.RequestType.APPROVED
+  req.status = RegistrationRequest.Status.APPROVED
   req.approved_at = timezone.now()
   req.approved_by = approved_by
   req.save(update_fields=["team_season", "status", "approved_at", "approved_by", "updated_at"])
@@ -65,8 +65,8 @@ def approve_create_team_request(*, req: RegistrationRequest, approved_by=None) -
 def approve_join_team_request(*, req: RegistrationRequest, approved_by=None) -> TeamMember:
   if req.request_type != RegistrationRequest.RequestType.JOIN_TEAM:
     raise ValueError("Not a JOIN_TEAM request")
-  if req.request_type != RegistrationRequest.Status.PENDING:
-    raise ValueError("Request is not PENDING")
+  if req.status != RegistrationRequest.Status.PENDING:
+    raise ValueError(f"Request is not PENDING (current={req.status})")
   if not req.team_season_id:
     raise ValueError("JOIN_TEAM request missing team_season")
   

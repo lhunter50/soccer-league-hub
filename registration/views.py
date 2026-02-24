@@ -15,7 +15,7 @@ class CreateTeamRegistrationView(generics.CreateAPIView):
 class JoinTeamRegistrationView(generics.CreateAPIView):
   permission_classes = [permissions.AllowAny]
   serializer_class = PlayerJoinRegistrationSerializer
-  queryset = RegistrationRequest.objects.select_related("season", "division", "team_season")
+  queryset = RegistrationRequest.objects.select_related("season", "team_season")
 
 class InviteInfoView(APIView):
   permission_classes = [permissions.AllowAny]

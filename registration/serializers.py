@@ -50,7 +50,6 @@ class PlayerJoinRegistrationSerializer(serializers.Serializer):
       request_type=RegistrationRequest.RequestType.JOIN_TEAM,
       status=RegistrationRequest.Status.PENDING,
       season=ts.season,
-      division=getattr(ts, "division", None),
       team_season=ts,
       **validated_data,
     )

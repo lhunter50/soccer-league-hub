@@ -1,0 +1,35 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <h1>{{ title }}</h1>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    <div>
+      <label>Invite token</label><br>
+      <input type="text" name="token" style="width: 40rem;" required>
+    </div>
+    <br>
+
+    <div>
+      <label>Full name</label><br>
+      <input type="text" name="full_name" style="width: 25rem;" required>
+    </div>
+    <br>
+
+    <div>
+      <label>Email (optional)</label><br>
+      <input type="email" name="email" style="width: 25rem;">
+    </div>
+    <br>
+
+    <div>
+      <label>Phone (optional)</label><br>
+      <input type="text" name="phone" style="width: 25rem;">
+    </div>
+    <br>
+
+    <button type="submit" class="default">Create JOIN_TEAM request</button>
+  </form>
+{% endblock %}

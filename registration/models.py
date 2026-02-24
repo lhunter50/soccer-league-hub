@@ -4,7 +4,7 @@ import uuid
 from django.conf import settings
 from django.db import models
 
-from leagues.models import Season, Division, TeamSeason
+from leagues.models import Season, TeamSeason
 
 class RegistrationRequest(models.Model):
   class RequestType(models.TextChoices):

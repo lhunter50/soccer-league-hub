@@ -15,29 +15,28 @@ class MatchResultInline(admin.StackedInline):
 class AppearanceInline(admin.TabularInline):
     model = Appearance
     extra = 0
-    autocomplete_fields = ["player"]
-    fields = ("team", "player")
+    fields = ("player",)  # remove "team" (recommended)
 
     def get_formset(self, request, obj=None, **kwargs):
-        # stash obj so formfield_for_foreignkey can access it
         self._match_obj = obj
         return super().get_formset(request, obj, **kwargs)
 
-def formfield_for_foreignkey(self, db_field, request, **kwargs):
-    if db_field.name == "player":
-        match = getattr(self, "_match_obj", None)
-        if match:
-            kwargs["queryset"] = TeamMember.objects.filter(
-                team_season__team_id__in=[match.home_team_id, match.away_team_id],
-                is_active=True,
-            ).select_related("team_season__team")
-    return super().formfield_for_foreignkey(db_field, request, **kwargs)
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "player":
+            match = getattr(self, "_match_obj", None)
+            if match:
+                kwargs["queryset"] = TeamMember.objects.filter(
+                    team_season__team_id__in=[match.home_team_id, match.away_team_id],
+                    is_active=True,
+                ).select_related("team_season__team")
+            else:
+                kwargs["queryset"] = TeamMember.objects.none()
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 class GoalEventInline(admin.TabularInline):
     model = GoalEvent
     extra = 0
-    autocomplete_fields = ["scorer"]
     fields = ("scorer", "minute")
 
     def get_formset(self, request, obj=None, **kwargs):
@@ -52,14 +51,15 @@ class GoalEventInline(admin.TabularInline):
                     team_season__team_id__in=[match.home_team_id, match.away_team_id],
                     is_active=True,
                 ).select_related("team_season__team")
+            else:
+                kwargs["queryset"] = TeamMember.objects.none()
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 class CardEventInline(admin.TabularInline):
     model = CardEvent
     extra = 0
-    autocomplete_fields = ["player"]
-    fields = ("team", "player", "card", "minute", "note")
+    fields = ("player", "card", "minute", "note")
 
     def get_formset(self, request, obj=None, **kwargs):
         self._match_obj = obj
@@ -73,9 +73,9 @@ class CardEventInline(admin.TabularInline):
                     team_season__team_id__in=[match.home_team_id, match.away_team_id],
                     is_active=True,
                 ).select_related("team_season__team")
+            else:
+                kwargs["queryset"] = TeamMember.objects.none()
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
-
-
 
 @admin.register(Season)
 class SeasonAdmin(admin.ModelAdmin):

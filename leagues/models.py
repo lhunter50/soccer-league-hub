@@ -260,7 +260,7 @@ class TeamMember(models.Model):
     ]
 
   def __str__(self):
-    return f"{self.full_name} ({self.team_season_id})"
+    return f"{self.full_name} -- {self.team_season.team.name}"
   
 
 class GoalEvent(models.Model):
@@ -279,30 +279,18 @@ class GoalEvent(models.Model):
       models.Index(fields=["scorer"])
     ]
   def clean(self):
-    errors = {}
+    if not self.match_id or not self.player_id:
+        return  # let admin handle required field errors
 
-    # If scorer picked, we can infer the team (nice UX)
-    if self.scorer_id and not self.team_id:
-        self.team_id = self.scorer.team_season.team_id
+    player_team_id = self.player.team_season.team_id
 
-    # Validate team belongs to match
-    if self.match_id and self.team_id:
-        if self.team_id not in (self.match.home_team_id, self.match.away_team_id):
-            errors["team"] = "Team must be either the match home team or away team."
+    # Auto-set team from player
+    self.team_id = player_team_id
 
-    # Validate scorer belongs to that team
-    if self.scorer_id and self.team_id:
-        if self.scorer.team_season.team_id != self.team_id:
-            errors["scorer"] = "Scorer must belong to the selected team."
-
-    # Validate scorer is part of one of the match teams
-    if self.match_id and self.scorer_id:
-        scorer_team_id = self.scorer.team_season.team_id
-        if scorer_team_id not in (self.match.home_team_id, self.match.away_team_id):
-            errors["scorer"] = "Scorer must belong to a team playing in this match."
-
-    if errors:
-        raise ValidationError(errors)
+    if player_team_id not in (self.match.home_team_id, self.match.away_team_id):
+        raise ValidationError({
+            "player": "Player must belong to a team playing in this match."
+        })
 
 class CardEvent(models.Model):
   class Card(models.TextChoices):
@@ -328,27 +316,18 @@ class CardEvent(models.Model):
     ]
 
   def clean(self):
-    errors = {}
+    if not self.match_id or not self.player_id:
+        return  # let admin handle required field errors
 
-    # Auto-infer team from player if not set
-    if self.player_id and not self.team_id:
-        self.team_id = self.player.team_season.team_id
+    player_team_id = self.player.team_season.team_id
 
-    if self.match_id and self.team_id:
-        if self.team_id not in (self.match.home_team_id, self.match.away_team_id):
-            errors["team"] = "Team must be either the match home team or away team."
+    # Auto-set team from player
+    self.team_id = player_team_id
 
-    if self.player_id and self.team_id:
-        if self.player.team_season.team_id != self.team_id:
-            errors["player"] = "Player must belong to the selected team."
-
-    if self.match_id and self.player_id:
-        player_team_id = self.player.team_season.team_id
-        if player_team_id not in (self.match.home_team_id, self.match.away_team_id):
-            errors["player"] = "Player must belong to a team playing in this match."
-
-    if errors:
-        raise ValidationError(errors)
+    if player_team_id not in (self.match.home_team_id, self.match.away_team_id):
+        raise ValidationError({
+            "player": "Player must belong to a team playing in this match."
+        })
 
 class Appearance(models.Model):
   id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -366,24 +345,15 @@ class Appearance(models.Model):
     ]
 
   def clean(self):
-    errors = {}
+    if not self.match_id or not self.player_id:
+        return  # let admin handle required field errors
 
-    # Auto-infer team from player if not set
-    if self.player_id and not self.team_id:
-        self.team_id = self.player.team_season.team_id
+    player_team_id = self.player.team_season.team_id
 
-    if self.match_id and self.team_id:
-        if self.team_id not in (self.match.home_team_id, self.match.away_team_id):
-            errors["team"] = "Team must be either the match home team or away team."
+    # Auto-set team from player
+    self.team_id = player_team_id
 
-    if self.player_id and self.team_id:
-        if self.player.team_season.team_id != self.team_id:
-            errors["player"] = "Player must belong to the selected team."
-
-    if self.match_id and self.player_id:
-        player_team_id = self.player.team_season.team_id
-        if player_team_id not in (self.match.home_team_id, self.match.away_team_id):
-            errors["player"] = "Player must belong to a team playing in this match."
-
-    if errors:
-        raise ValidationError(errors)
+    if player_team_id not in (self.match.home_team_id, self.match.away_team_id):
+        raise ValidationError({
+            "player": "Player must belong to a team playing in this match."
+        })

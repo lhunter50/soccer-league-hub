@@ -29,7 +29,11 @@ def approve_create_team_request(*, req: RegistrationRequest, approved_by=None) -
   if req.status != RegistrationRequest.Status.PENDING:
     raise ValueError("Request is not PENDING.")
   
-  team = Team.objects.create(name=req.team_name_text.strip())
+  team = Team.objects.create(
+    name=req.team_name_text.strip(), 
+    primary_contact_name=req.full_name.strip(), 
+    primary_contact_email=(req.email or "" ).strip()
+    )
   team_season = TeamSeason.objects.create(team=team, season=req.season,)
 
   #Captain record

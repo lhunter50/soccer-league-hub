@@ -77,7 +77,10 @@ class RegistrationRequestAdmin(admin.ModelAdmin):
           token = (request.POST.get("token") or "").strip()
           full_name = (request.POST.get("full_name") or "").strip()
           email = (request.POST.get("email") or "").strip()
-          phone = (request.POST.get("phone") or "").strip()
+          phone = (request.POST.get("phone") or "").strip() 
+          waiver_file = request.FILES.get("waiver_file")
+          id_file = request.FILES.get("id_file")
+          
 
           if not token or not full_name:
               messages.error(request, "Token and full name are required.")
@@ -103,6 +106,8 @@ class RegistrationRequestAdmin(admin.ModelAdmin):
               full_name=full_name,
               email=email,
               phone=phone,
+              waiver_file=waiver_file,
+              id_file=id_file
           )
 
           messages.success(

@@ -3,7 +3,7 @@
 {% block content %}
   <h1>{{ title }}</h1>
 
-  <form method="post" novalidate>
+  <form method="post" enctype="multipart/form-data" novalidate>
     {% csrf_token %}
 
     <div>
@@ -29,6 +29,17 @@
       <input type="text" name="phone" style="width: 25rem;">
     </div>
     <br>
+
+    <br>
+    <div>
+      <label>Waiver (optional)</label><br>
+      <input type="file" name="waiver_file" accept=".pdf,image/*">
+    </div>
+    <br>
+    <div>
+      <label>ID Photo (optional)</label><br>
+      <input type="file" name="id_file" accept="image/*,.pdf">
+    </div>
 
     <button type="submit" class="default">Create JOIN_TEAM request</button>
   </form>
